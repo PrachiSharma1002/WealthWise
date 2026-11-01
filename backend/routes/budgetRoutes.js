@@ -5,6 +5,7 @@ const {
   deleteBudget,
   getRecommendations,
   updateSplit,
+  getUnbudgeted,
 } = require('../controllers/budgetController');
 const { protect } = require('../middleware/authMiddleware');
 
@@ -15,6 +16,7 @@ router.use(protect);
 
 router.route('/').get(getBudgets).post(setBudget);
 router.get('/recommendations', getRecommendations);
+router.get('/unbudgeted', getUnbudgeted);
 router.put('/split', updateSplit);
 router.delete('/:id', deleteBudget);
 

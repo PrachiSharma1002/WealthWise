@@ -25,6 +25,11 @@ const userSchema = new mongoose.Schema(
       lifestyle: { type: Number, default: 30 },
       savings: { type: Number, default: 20 },
     },
+    // Months whose budgets were already copied from the month before
+    copiedMonths: {
+      type: [String],
+      default: [],
+    },
   },
   { timestamps: true }
 );

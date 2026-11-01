@@ -26,6 +26,11 @@ const budgetSchema = new mongoose.Schema(
       required: [true, 'Budget amount is required'],
       min: [1, 'Budget must be at least 1'],
     },
+    // True when the app created this budget by itself
+    auto: {
+      type: Boolean,
+      default: false,
+    },
   },
   { timestamps: true }
 );

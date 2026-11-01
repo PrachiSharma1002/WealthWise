@@ -15,6 +15,7 @@ export default function Budgets() {
   const [month, setMonth] = useState(currentMonth());
   const [categories, setCategories] = useState([]);
   const [budgets, setBudgets] = useState([]);
+  const [unbudgeted, setUnbudgeted] = useState([]);
   const [recs, setRecs] = useState(null);
 
   // The "set a budget" form
@@ -56,10 +57,19 @@ export default function Budgets() {
     let ignore = false; // ignore answers that arrive late and out of order
     api
       .get('/budgets', { params: { month } })
-      .then((res) => {
+      .then(async (res) => {
         if (ignore) return;
         setBudgets(res.data);
         setError('');
+
+        // Fetch this only after the budgets, so the two requests never race
+        // each other to copy last month's budgets into a new month
+        try {
+          const unb = await api.get('/budgets/unbudgeted', { params: { month } });
+          if (!ignore) setUnbudgeted(unb.data);
+        } catch {
+          if (!ignore) setUnbudgeted([]);
+        }
       })
       .catch(() => {
         if (!ignore) setError('Could not load your budgets');
@@ -134,6 +144,21 @@ export default function Budgets() {
     setCategoryId(r.category._id);
     setAmount(String(r.suggested));
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // Save a budget for an unbudgeted category at its suggested limit
+  const setAtSuggestion = async (u) => {
+    setError('');
+    try {
+      await api.post('/budgets', {
+        category: u.category._id,
+        month,
+        amount: u.suggested,
+      });
+      setReloadKey((k) => k + 1);
+    } catch (err) {
+      setError(err.response?.data?.message || 'Something went wrong');
+    }
   };
 
   const handleDelete = async (b) => {
@@ -268,7 +293,17 @@ export default function Budgets() {
             return (
               <li key={b._id}>
                 <div className="bud-row">
-                  <span className="bud-name">{b.category.name}</span>
+                  <span className="bud-name">
+                    {b.category.name}
+                    {b.auto && (
+                      <span
+                        className="bud-auto"
+                        title="Created automatically. Edit it to set your own limit."
+                      >
+                        Auto
+                      </span>
+                    )}
+                  </span>
                   <span className="bud-numbers">
                     {formatMoney(b.spent)} of {formatMoney(b.amount)}
                   </span>
@@ -305,6 +340,35 @@ export default function Budgets() {
             );
           })}
         </ul>
+      )}
+
+      {unbudgeted.length > 0 && (
+        <div className="bud-unb">
+          <h2 className="bud-unb-title">Spending without a budget</h2>
+          <p className="bud-sub">
+            You spent money in these categories this month, but they have no
+            budget yet.
+          </p>
+          <ul className="bud-unb-list">
+            {unbudgeted.map((u) => (
+              <li key={u.category._id}>
+                <div>
+                  <div className="bud-name">{u.category.name}</div>
+                  <div className="bud-numbers">
+                    Spent {formatMoney(u.spent)} · Suggested limit{' '}
+                    {formatMoney(u.suggested)}
+                  </div>
+                </div>
+                <button
+                  className="bud-rec-use"
+                  onClick={() => setAtSuggestion(u)}
+                >
+                  Set budget at {formatMoney(u.suggested)}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
       )}
 
       <h2 className="bud-rec-title">Suggested budgets</h2>

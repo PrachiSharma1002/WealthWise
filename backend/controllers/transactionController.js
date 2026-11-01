@@ -1,6 +1,8 @@
 const mongoose = require('mongoose');
 const Transaction = require('../models/Transaction');
 const Category = require('../models/Category');
+const { ensureBudget } = require('../utils/autoBudget');
+
 
 // Makes a search word safe to use inside a database search
 const escapeRegex = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -101,6 +103,7 @@ const createTransaction = async (req, res) => {
       note: typeof note === 'string' ? note : '',
     });
 
+    await ensureBudget(req.user._id, transaction);
     await transaction.populate('category', 'name type');
     res.status(201).json(transaction);
   } catch (error) {
@@ -167,6 +170,7 @@ const updateTransaction = async (req, res) => {
     transaction.category = newCategory;
 
     await transaction.save();
+    await ensureBudget(req.user._id, transaction);
     await transaction.populate('category', 'name type');
     res.json(transaction);
   } catch (error) {

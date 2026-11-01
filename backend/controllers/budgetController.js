@@ -3,6 +3,7 @@ const Budget = require('../models/Budget');
 const Category = require('../models/Category');
 const Transaction = require('../models/Transaction');
 const User = require('../models/User');
+const { copyLastMonth, suggestLimit } = require('../utils/autoBudget');
 
 const MONTH_REGEX = /^\d{4}-(0[1-9]|1[0-2])$/;
 
@@ -37,6 +38,8 @@ const getBudgets = async (req, res) => {
     }
     const { start, end } = monthRange(month);
 
+    await copyLastMonth(req.user._id, month);
+
     const budgets = await Budget.find({
       user: req.user._id,
       month,
@@ -65,6 +68,7 @@ const getBudgets = async (req, res) => {
           _id: b._id,
           category: b.category,
           month: b.month,
+          auto: b.auto,
           amount: b.amount,
           spent,
           remaining: round2(b.amount - spent),
@@ -115,7 +119,7 @@ const setBudget = async (req, res) => {
 
     const budget = await Budget.findOneAndUpdate(
       { user: req.user._id, category, month },
-      { amount: numericAmount },
+      { amount: numericAmount, auto: false },
       { new: true, upsert: true, runValidators: true, setDefaultsOnInsert: true }
     );
 
@@ -323,10 +327,75 @@ const updateSplit = async (req, res) => {
   }
 };
 
+// GET: categories I spent in this month that have no budget yet
+const getUnbudgeted = async (req, res) => {
+  try {
+    const { month } = req.query;
+    if (typeof month !== 'string' || !MONTH_REGEX.test(month)) {
+      return res.status(400).json({ message: 'Month must look like 2026-10' });
+    }
+    const { start, end } = monthRange(month);
+
+    // Make sure last month's budgets were copied in first
+    await copyLastMonth(req.user._id, month);
+
+    // Which categories already have a budget this month
+    const budgeted = await Budget.find({
+      user: req.user._id,
+      month,
+    }).select('category');
+    const budgetedIds = new Set(budgeted.map((b) => String(b.category)));
+
+    // Add up this month's expenses, grouped by category
+    const spentRows = await Transaction.aggregate([
+      {
+        $match: {
+          user: req.user._id,
+          type: 'expense',
+          date: { $gte: start, $lt: end },
+        },
+      },
+      { $group: { _id: '$category', spent: { $sum: '$amount' } } },
+    ]);
+
+    // Keep only the ones with no budget
+    const missing = spentRows.filter((r) => !budgetedIds.has(String(r._id)));
+    if (missing.length === 0) {
+      return res.json([]);
+    }
+
+    const categories = await Category.find({
+      user: req.user._id,
+      type: 'expense',
+      _id: { $in: missing.map((r) => r._id) },
+    });
+    const nameById = new Map(categories.map((c) => [String(c._id), c.name]));
+
+    const result = [];
+    for (const row of missing) {
+      const name = nameById.get(String(row._id));
+      if (!name) continue; // skip any whose category no longer exists
+
+      const spent = round2(row.spent);
+      result.push({
+        category: { _id: row._id, name },
+        spent,
+        suggested: await suggestLimit(req.user._id, row._id, month, spent),
+      });
+    }
+
+    result.sort((a, b) => b.spent - a.spent);
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
 module.exports = {
   getBudgets,
   setBudget,
   deleteBudget,
   getRecommendations,
   updateSplit,
+  getUnbudgeted,
 };
