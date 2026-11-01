@@ -4,6 +4,7 @@ import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Categories from './pages/Categories';
 import Transactions from './pages/Transactions';
+import Budgets from './pages/Budgets';
 import ProtectedRoute from './components/ProtectedRoute';
 import Layout from './components/Layout';
 
@@ -23,6 +24,7 @@ export default function App() {
       >
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/transactions" element={<Transactions />} />
+        <Route path="/budgets" element={<Budgets />} />
         <Route path="/categories" element={<Categories />} />
       </Route>
 

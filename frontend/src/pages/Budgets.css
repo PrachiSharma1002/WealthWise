@@ -1,0 +1,259 @@
+.bud-sub {
+  color: #6b7280;
+  margin-top: 0;
+}
+
+.bud-error {
+  background: #fee2e2;
+  color: #b91c1c;
+  padding: 10px;
+  border-radius: 8px;
+  margin-bottom: 12px;
+  font-size: 14px;
+}
+
+.bud-month {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 16px 0;
+}
+
+.bud-month label {
+  font-weight: 600;
+}
+
+.bud-month input {
+  padding: 10px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 15px;
+}
+
+.bud-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px;
+  background: #ffffff;
+  padding: 16px;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  margin-bottom: 20px;
+}
+
+.bud-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 160px;
+}
+
+.bud-field label {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.bud-field input,
+.bud-field select {
+  padding: 10px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 15px;
+}
+
+.bud-form button {
+  padding: 10px 24px;
+  background: #2563eb;
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  font-size: 15px;
+  cursor: pointer;
+}
+
+.bud-form button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.bud-summary {
+  color: #6b7280;
+  font-size: 14px;
+  margin: 0 0 12px;
+}
+
+.bud-empty {
+  color: #6b7280;
+}
+
+.bud-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.bud-list li {
+  background: #ffffff;
+  padding: 16px;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.bud-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.bud-name {
+  font-weight: 600;
+  font-size: 16px;
+}
+
+.bud-numbers {
+  color: #6b7280;
+  font-size: 14px;
+}
+
+.bud-bar {
+  height: 10px;
+  background: #e5e7eb;
+  border-radius: 999px;
+  overflow: hidden;
+  margin: 10px 0;
+}
+
+.bud-fill {
+  height: 100%;
+  border-radius: 999px;
+}
+
+.bud-fill.ok {
+  background: #16a34a;
+}
+
+.bud-fill.warn {
+  background: #f59e0b;
+}
+
+.bud-fill.over {
+  background: #dc2626;
+}
+
+.bud-status {
+  font-size: 14px;
+}
+
+.bud-status.ok {
+  color: #16a34a;
+}
+
+.bud-status.warn {
+  color: #b45309;
+}
+
+.bud-status.over {
+  color: #dc2626;
+  font-weight: 600;
+}
+
+.bud-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.bud-actions button {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.bud-edit {
+  color: #2563eb;
+}
+
+.bud-delete {
+  color: #dc2626;
+}
+
+
+.bud-rec-title {
+  margin-top: 32px;
+}
+
+.bud-plan {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.bud-plan-box {
+  flex: 1;
+  min-width: 150px;
+  background: #eff6ff;
+  padding: 14px;
+  border-radius: 12px;
+}
+
+.bud-plan-label {
+  font-size: 13px;
+  color: #4b5563;
+}
+
+.bud-plan-value {
+  font-size: 20px;
+  font-weight: 700;
+  color: #2563eb;
+}
+
+.bud-rec-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.bud-rec-list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  background: #ffffff;
+  padding: 14px 16px;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.bud-rec-msg {
+  font-size: 13px;
+  color: #4b5563;
+  margin-top: 4px;
+}
+
+.bud-rec-use {
+  padding: 8px 14px;
+  background: #eff6ff;
+  color: #2563eb;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.bud-rec-done {
+  color: #16a34a;
+  font-size: 14px;
+  white-space: nowrap;
+}

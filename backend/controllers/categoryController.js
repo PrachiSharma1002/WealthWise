@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 const Category = require('../models/Category');
 const Transaction = require('../models/Transaction');
+const Budget = require('../models/Budget');
 
 // The starter categories every user gets
 const DEFAULT_CATEGORIES = [
@@ -98,6 +99,7 @@ const deleteCategory = async (req, res) => {
     }
 
     await category.deleteOne();
+    await Budget.deleteMany({ user: req.user._id, category: id });
     res.json({ message: 'Category deleted' });
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
