@@ -2,22 +2,30 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import Register from './pages/Register';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
+import Categories from './pages/Categories';
+import Transactions from './pages/Transactions';
 import ProtectedRoute from './components/ProtectedRoute';
+import Layout from './components/Layout';
 
 export default function App() {
   return (
     <Routes>
       <Route path="/register" element={<Register />} />
       <Route path="/login" element={<Login />} />
+
+      {/* Everything inside here needs a login and shows the navbar */}
       <Route
-        path="/dashboard"
         element={
           <ProtectedRoute>
-            <Dashboard />
+            <Layout />
           </ProtectedRoute>
         }
-      />
-      {/* Any other address goes to the dashboard (which sends strangers to login) */}
+      >
+        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/transactions" element={<Transactions />} />
+        <Route path="/categories" element={<Categories />} />
+      </Route>
+
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
     </Routes>
   );

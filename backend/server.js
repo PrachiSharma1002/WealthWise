@@ -18,6 +18,13 @@ app.use(express.json());
 const authRoutes = require('./routes/authRoutes');
 app.use('/api/auth', authRoutes);
 
+
+// Category and transaction routes
+const categoryRoutes = require('./routes/categoryRoutes');
+const transactionRoutes = require('./routes/transactionRoutes');
+app.use('/api/categories', categoryRoutes);
+app.use('/api/transactions', transactionRoutes);
+
 // 4. A test route to check the server is alive
 app.get('/', (req, res) => {
   res.send('WealthWise backend is running!');

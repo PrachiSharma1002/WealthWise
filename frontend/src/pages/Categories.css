@@ -1,0 +1,85 @@
+.cat-sub {
+  color: #6b7280;
+  margin-top: 0;
+}
+
+.cat-error {
+  background: #fee2e2;
+  color: #b91c1c;
+  padding: 10px;
+  border-radius: 8px;
+  margin-bottom: 12px;
+  font-size: 14px;
+}
+
+.cat-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 16px 0 24px;
+}
+
+.cat-form input,
+.cat-form select {
+  padding: 10px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 15px;
+}
+
+.cat-form input {
+  flex: 1;
+  min-width: 180px;
+}
+
+.cat-form button {
+  padding: 10px 20px;
+  background: #2563eb;
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  font-size: 15px;
+  cursor: pointer;
+}
+
+.cat-columns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.cat-box {
+  flex: 1;
+  min-width: 260px;
+  background: #ffffff;
+  padding: 16px;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.cat-box h2 {
+  margin: 0 0 8px;
+  font-size: 18px;
+}
+
+.cat-box ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.cat-box li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.cat-box li button {
+  background: none;
+  border: none;
+  color: #dc2626;
+  cursor: pointer;
+  font-size: 14px;
+}
