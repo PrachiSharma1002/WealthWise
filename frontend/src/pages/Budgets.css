@@ -257,3 +257,83 @@
   font-size: 14px;
   white-space: nowrap;
 }
+
+
+.bud-split {
+  background: #ffffff;
+  padding: 16px;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  margin-bottom: 16px;
+}
+
+.bud-split-title {
+  font-weight: 700;
+  font-size: 16px;
+}
+
+.bud-split-help {
+  color: #6b7280;
+  font-size: 14px;
+  margin: 4px 0 12px;
+}
+
+.bud-split-fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.bud-split-footer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.bud-split-total {
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.bud-split-total.good {
+  color: #16a34a;
+}
+
+.bud-split-total.bad {
+  color: #dc2626;
+}
+
+.bud-split-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.bud-split-saved {
+  color: #16a34a;
+  font-size: 14px;
+}
+
+.bud-split button {
+  padding: 8px 16px;
+  background: #2563eb;
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.bud-split button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.bud-split .bud-split-reset {
+  background: #f3f4f6;
+  color: #374151;
+}

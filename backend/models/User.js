@@ -19,6 +19,12 @@ const userSchema = new mongoose.Schema(
       type: String,
       required: [true, 'Password is required'],
     },
+    // How the user wants to split their income (the three must add up to 100)
+    budgetSplit: {
+      needs: { type: Number, default: 50 },
+      lifestyle: { type: Number, default: 30 },
+      savings: { type: Number, default: 20 },
+    },
   },
   { timestamps: true }
 );

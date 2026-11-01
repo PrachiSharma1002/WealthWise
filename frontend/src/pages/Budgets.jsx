@@ -21,6 +21,15 @@ export default function Budgets() {
   const [categoryId, setCategoryId] = useState('');
   const [amount, setAmount] = useState('');
 
+  // The split editor (kept as text so the boxes can be cleared while typing)
+  const [splitForm, setSplitForm] = useState({
+    needs: '50',
+    lifestyle: '30',
+    savings: '20',
+  });
+  const [splitMessage, setSplitMessage] = useState('');
+  const [splitSaving, setSplitSaving] = useState(false);
+
   const [reloadKey, setReloadKey] = useState(0);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
@@ -64,7 +73,7 @@ export default function Budgets() {
     };
   }, [month, reloadKey]);
 
-  // Fetch the suggestions whenever the month changes
+  // Fetch the suggestions whenever the month changes (or the split is saved)
   useEffect(() => {
     if (!month) return;
 
@@ -72,7 +81,8 @@ export default function Budgets() {
     api
       .get('/budgets/recommendations', { params: { month } })
       .then((res) => {
-        if (!ignore) setRecs(res.data);
+        if (ignore) return;
+        setRecs(res.data);
       })
       .catch(() => {
         if (!ignore) setRecs(null);
@@ -81,7 +91,20 @@ export default function Budgets() {
     return () => {
       ignore = true;
     };
-  }, [month]);
+  }, [month, reloadKey]);
+
+  // The first time the suggestions arrive, fill the editor with the saved split
+  const [splitLoaded, setSplitLoaded] = useState(false);
+  useEffect(() => {
+    if (recs?.split && !splitLoaded) {
+      setSplitForm({
+        needs: String(recs.split.needs),
+        lifestyle: String(recs.split.lifestyle),
+        savings: String(recs.split.savings),
+      });
+      setSplitLoaded(true);
+    }
+  }, [recs, splitLoaded]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -122,6 +145,47 @@ export default function Budgets() {
     } catch (err) {
       setError(err.response?.data?.message || 'Something went wrong');
     }
+  };
+
+  const updateSplitField = (field, value) => {
+    setSplitMessage('');
+    setSplitForm((prev) => ({ ...prev, [field]: value }));
+  };
+
+  // The three shares as numbers, and whether they are valid
+  const splitNumbers = {
+    needs: Number(splitForm.needs),
+    lifestyle: Number(splitForm.lifestyle),
+    savings: Number(splitForm.savings),
+  };
+  const splitTotal =
+    splitNumbers.needs + splitNumbers.lifestyle + splitNumbers.savings;
+  const splitValid =
+    Object.values(splitForm).every((v) => v !== '') &&
+    Object.values(splitNumbers).every(
+      (n) => Number.isInteger(n) && n >= 0 && n <= 100
+    ) &&
+    splitTotal === 100;
+
+  const saveSplit = async (e) => {
+    e.preventDefault();
+    setError('');
+    setSplitMessage('');
+    setSplitSaving(true);
+    try {
+      await api.put('/budgets/split', splitNumbers);
+      setSplitMessage('Saved!');
+      setReloadKey((k) => k + 1); // refresh the plan boxes
+    } catch (err) {
+      setError(err.response?.data?.message || 'Something went wrong');
+    } finally {
+      setSplitSaving(false);
+    }
+  };
+
+  const resetSplit = () => {
+    setSplitMessage('');
+    setSplitForm({ needs: '50', lifestyle: '30', savings: '20' });
   };
 
   const totalBudget = budgets.reduce((sum, b) => sum + b.amount, 0);
@@ -245,6 +309,64 @@ export default function Budgets() {
 
       <h2 className="bud-rec-title">Suggested budgets</h2>
 
+      <form className="bud-split" onSubmit={saveSplit}>
+        <div className="bud-split-title">Your income split</div>
+        <p className="bud-split-help">
+          Decide how to divide your income. The three must add up to 100.
+        </p>
+
+        <div className="bud-split-fields">
+          <div className="bud-field">
+            <label>Needs (%)</label>
+            <input
+              type="number"
+              min="0"
+              max="100"
+              step="1"
+              value={splitForm.needs}
+              onChange={(e) => updateSplitField('needs', e.target.value)}
+            />
+          </div>
+          <div className="bud-field">
+            <label>Lifestyle (%)</label>
+            <input
+              type="number"
+              min="0"
+              max="100"
+              step="1"
+              value={splitForm.lifestyle}
+              onChange={(e) => updateSplitField('lifestyle', e.target.value)}
+            />
+          </div>
+          <div className="bud-field">
+            <label>Savings (%)</label>
+            <input
+              type="number"
+              min="0"
+              max="100"
+              step="1"
+              value={splitForm.savings}
+              onChange={(e) => updateSplitField('savings', e.target.value)}
+            />
+          </div>
+        </div>
+
+        <div className="bud-split-footer">
+          <span className={`bud-split-total ${splitValid ? 'good' : 'bad'}`}>
+            Total: {Number.isNaN(splitTotal) ? '?' : splitTotal}% of 100%
+          </span>
+          <span className="bud-split-buttons">
+            {splitMessage && <span className="bud-split-saved">{splitMessage}</span>}
+            <button type="button" className="bud-split-reset" onClick={resetSplit}>
+              Reset to 50/30/20
+            </button>
+            <button type="submit" disabled={!splitValid || splitSaving}>
+              {splitSaving ? 'Saving...' : 'Save split'}
+            </button>
+          </span>
+        </div>
+      </form>
+
       {!recs || recs.basedOnMonths === 0 ? (
         <p className="bud-empty">
           Add some transactions in the 3 months before this month, and
@@ -262,17 +384,23 @@ export default function Budgets() {
           {recs.plan && (
             <div className="bud-plan">
               <div className="bud-plan-box">
-                <div className="bud-plan-label">Needs (50%)</div>
+                <div className="bud-plan-label">
+                  Needs ({recs.split.needs}%)
+                </div>
                 <div className="bud-plan-value">{formatMoney(recs.plan.needs)}</div>
               </div>
               <div className="bud-plan-box">
-                <div className="bud-plan-label">Lifestyle (30%)</div>
+                <div className="bud-plan-label">
+                  Lifestyle ({recs.split.lifestyle}%)
+                </div>
                 <div className="bud-plan-value">
                   {formatMoney(recs.plan.lifestyle)}
                 </div>
               </div>
               <div className="bud-plan-box">
-                <div className="bud-plan-label">Savings (20%)</div>
+                <div className="bud-plan-label">
+                  Savings ({recs.split.savings}%)
+                </div>
                 <div className="bud-plan-value">
                   {formatMoney(recs.plan.savings)}
                 </div>

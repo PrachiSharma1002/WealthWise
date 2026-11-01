@@ -2,6 +2,7 @@ const mongoose = require('mongoose');
 const Budget = require('../models/Budget');
 const Category = require('../models/Category');
 const Transaction = require('../models/Transaction');
+const User = require('../models/User');
 
 const MONTH_REGEX = /^\d{4}-(0[1-9]|1[0-2])$/;
 
@@ -16,6 +17,16 @@ const monthRange = (month) => {
     end: new Date(Date.UTC(year, mon, 1)),
   };
 };
+
+// The split used when a user hasn't chosen their own
+const DEFAULT_SPLIT = { needs: 50, lifestyle: 30, savings: 20 };
+
+// Reads a user's split, falling back to the default for any missing value
+const getSplit = (user) => ({
+  needs: user.budgetSplit?.needs ?? DEFAULT_SPLIT.needs,
+  lifestyle: user.budgetSplit?.lifestyle ?? DEFAULT_SPLIT.lifestyle,
+  savings: user.budgetSplit?.savings ?? DEFAULT_SPLIT.savings,
+});
 
 // GET: my budgets for one month, each with how much has been spent so far
 const getBudgets = async (req, res) => {
@@ -137,7 +148,6 @@ const deleteBudget = async (req, res) => {
   }
 };
 
-
 // Rough guideline: the share of income each kind of spending should stay under
 const GUIDELINE_PERCENT = {
   rent: 30,
@@ -160,6 +170,9 @@ const getRecommendations = async (req, res) => {
     if (typeof month !== 'string' || !MONTH_REGEX.test(month)) {
       return res.status(400).json({ message: 'Month must look like 2026-10' });
     }
+
+    // The user's own needs / lifestyle / savings split
+    const split = getSplit(req.user);
 
     // The 3 full months before the chosen month
     const [year, mon] = month.split('-').map(Number);
@@ -187,6 +200,7 @@ const getRecommendations = async (req, res) => {
         basedOnMonths: 0,
         avgIncome: 0,
         avgExpense: 0,
+        split,
         plan: null,
         recommendations: [],
       });
@@ -253,13 +267,13 @@ const getRecommendations = async (req, res) => {
 
     recommendations.sort((a, b) => b.avgSpent - a.avgSpent);
 
-    // The 50 / 30 / 20 plan: needs, lifestyle, savings
+    // The plan: needs, lifestyle, savings, using the user's own split
     const plan =
       avgIncome > 0
         ? {
-            needs: round2(avgIncome * 0.5),
-            lifestyle: round2(avgIncome * 0.3),
-            savings: round2(avgIncome * 0.2),
+            needs: round2((avgIncome * split.needs) / 100),
+            lifestyle: round2((avgIncome * split.lifestyle) / 100),
+            savings: round2((avgIncome * split.savings) / 100),
           }
         : null;
 
@@ -267,9 +281,43 @@ const getRecommendations = async (req, res) => {
       basedOnMonths: monthsWithData,
       avgIncome,
       avgExpense,
+      split,
       plan,
       recommendations,
     });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
+// PUT: change my needs / lifestyle / savings split
+const updateSplit = async (req, res) => {
+  try {
+    const { needs, lifestyle, savings } = req.body;
+    const values = [needs, lifestyle, savings];
+
+    // Each share must be a whole number from 0 to 100
+    const valid = values.every(
+      (v) => typeof v === 'number' && Number.isInteger(v) && v >= 0 && v <= 100
+    );
+    if (!valid) {
+      return res
+        .status(400)
+        .json({ message: 'Each share must be a whole number from 0 to 100' });
+    }
+
+    // Together they must make exactly 100
+    if (needs + lifestyle + savings !== 100) {
+      return res
+        .status(400)
+        .json({ message: 'The three shares must add up to 100' });
+    }
+
+    await User.findByIdAndUpdate(req.user._id, {
+      budgetSplit: { needs, lifestyle, savings },
+    });
+
+    res.json({ needs, lifestyle, savings });
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
   }
@@ -280,4 +328,5 @@ module.exports = {
   setBudget,
   deleteBudget,
   getRecommendations,
+  updateSplit,
 };
