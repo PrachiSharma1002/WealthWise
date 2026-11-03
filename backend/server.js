@@ -30,6 +30,11 @@ const budgetRoutes = require('./routes/budgetRoutes');
 app.use('/api/budgets', budgetRoutes);
 
 
+// Goal routes
+const goalRoutes = require('./routes/goalRoutes');
+app.use('/api/goals', goalRoutes);
+
+
 // 4. A test route to check the server is alive
 app.get('/', (req, res) => {
   res.send('WealthWise backend is running!');
