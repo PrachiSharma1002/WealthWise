@@ -19,6 +19,11 @@ const categorySchema = new mongoose.Schema(
       enum: ['income', 'expense'],
       required: true,
     },
+    // For expense categories: which main group it belongs to
+    group: {
+      type: String,
+      enum: ['needs', 'lifestyle', 'savings'],
+    },
   },
   { timestamps: true }
 );

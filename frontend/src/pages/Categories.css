@@ -83,3 +83,33 @@
   cursor: pointer;
   font-size: 14px;
 }
+
+
+.cat-section-title {
+  margin: 28px 0 4px;
+}
+
+.cat-hint {
+  color: #6b7280;
+  font-size: 13px;
+  margin: 0 0 8px;
+}
+
+.cat-item-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.cat-move {
+  padding: 4px 6px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 13px;
+  background: #ffffff;
+}
+
+.cat-box li.cat-empty {
+  color: #9ca3af;
+  font-size: 14px;
+}

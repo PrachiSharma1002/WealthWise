@@ -378,3 +378,92 @@
   border-radius: 12px;
   border-left: 4px solid #f59e0b;
 }
+
+
+
+.bud-plan-section {
+  margin: 8px 0 24px;
+}
+
+.bud-plan-title {
+  margin: 0 0 4px;
+}
+
+.bud-groups {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+}
+
+.bud-group-card {
+  flex: 1;
+  min-width: 240px;
+  background: #ffffff;
+  padding: 16px;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.bud-group-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.bud-group-name {
+  font-weight: 700;
+  font-size: 18px;
+}
+
+.bud-group-share {
+  color: #6b7280;
+  font-size: 13px;
+}
+
+.bud-group-numbers {
+  font-size: 14px;
+  color: #374151;
+}
+
+.bud-group-card .bud-status {
+  margin-top: 2px;
+  font-weight: 600;
+}
+
+.bud-group-subs {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 10px 0 0;
+  border-top: 1px solid #f3f4f6;
+}
+
+.bud-group-subs li {
+  display: flex;
+  justify-content: space-between;
+  padding: 3px 0;
+  font-size: 14px;
+  color: #4b5563;
+}
+
+.bud-group-none {
+  margin: 12px 0 0;
+  color: #9ca3af;
+  font-size: 14px;
+}
+
+.bud-fill.save {
+  background: #2563eb;
+}
+
+.bud-fill.done {
+  background: #16a34a;
+}
+
+.bud-status.save {
+  color: #2563eb;
+}
+
+.bud-status.done {
+  color: #16a34a;
+}

@@ -61,6 +61,11 @@ const ensureBudget = async (userId, transaction) => {
     if (transaction.type !== 'expense') return;
 
     const categoryId = transaction.category;
+
+    // Savings categories have a target, not a spending limit, so no budget
+    const category = await Category.findById(categoryId).select('group');
+    if (!category || category.group === 'savings') return;
+
     const month = monthOf(transaction.date);
 
     // Already budgeted? Then leave it alone.
@@ -121,10 +126,11 @@ const copyLastMonth = async (userId, month) => {
     );
     const have = new Set(existing.map((b) => String(b.category)));
 
-    // Skip categories that no longer exist
+    // Skip categories that no longer exist, and savings categories
     const stillExist = await Category.find({
       user: userId,
       type: 'expense',
+      group: { $ne: 'savings' },
       _id: { $in: previous.map((b) => b.category) },
     }).select('_id');
     const ok = new Set(stillExist.map((c) => String(c._id)));

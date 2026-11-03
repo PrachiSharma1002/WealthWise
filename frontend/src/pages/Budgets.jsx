@@ -11,12 +11,19 @@ const currentMonth = () => {
 
 const formatMoney = (value) => '₹' + Number(value).toLocaleString('en-IN');
 
+const GROUP_LABELS = {
+  needs: 'Needs',
+  lifestyle: 'Lifestyle',
+  savings: 'Savings',
+};
+
 export default function Budgets() {
   const [month, setMonth] = useState(currentMonth());
   const [categories, setCategories] = useState([]);
   const [budgets, setBudgets] = useState([]);
   const [unbudgeted, setUnbudgeted] = useState([]);
   const [recs, setRecs] = useState(null);
+  const [groups, setGroups] = useState(null);
 
   // The "set a budget" form
   const [categoryId, setCategoryId] = useState('');
@@ -43,7 +50,7 @@ export default function Budgets() {
       .then((res) =>
         setCategories(
           res.data
-            .filter((c) => c.type === 'expense')
+            .filter((c) => c.type === 'expense' && c.group !== 'savings')
             .sort((a, b) => a.name.localeCompare(b.name))
         )
       )
@@ -96,6 +103,25 @@ export default function Budgets() {
       })
       .catch(() => {
         if (!ignore) setRecs(null);
+      });
+
+    return () => {
+      ignore = true;
+    };
+  }, [month, reloadKey]);
+
+  // Fetch the needs / lifestyle / savings cards
+  useEffect(() => {
+    if (!month) return;
+
+    let ignore = false;
+    api
+      .get('/budgets/groups', { params: { month } })
+      .then((res) => {
+        if (!ignore) setGroups(res.data);
+      })
+      .catch(() => {
+        if (!ignore) setGroups(null);
       });
 
     return () => {
@@ -200,7 +226,7 @@ export default function Budgets() {
     try {
       await api.put('/budgets/split', splitNumbers);
       setSplitMessage('Saved!');
-      setReloadKey((k) => k + 1); // refresh the plan boxes
+      setReloadKey((k) => k + 1); // refresh the plan boxes and the group cards
     } catch (err) {
       setError(err.response?.data?.message || 'Something went wrong');
     } finally {
@@ -222,6 +248,75 @@ export default function Budgets() {
   // Which categories already have a budget this month
   const budgetedIds = new Set(budgets.map((b) => b.category._id));
 
+  // One card for needs, lifestyle or savings
+  const renderGroupCard = (g) => {
+    const isTarget = g.kind === 'target';
+    const hasAllowance = g.allowance > 0;
+    const pct = g.percentUsed ?? 0;
+
+    let level;
+    if (isTarget) {
+      level = pct >= 100 ? 'done' : 'save';
+    } else {
+      level = pct >= 100 ? 'over' : pct >= 80 ? 'warn' : 'ok';
+    }
+
+    let status;
+    if (!hasAllowance) {
+      status = 'No allowance yet';
+    } else if (isTarget) {
+      status =
+        g.remaining > 0
+          ? `${formatMoney(g.remaining)} left to save`
+          : 'Target reached! 🎉';
+    } else {
+      status =
+        g.remaining >= 0
+          ? `${formatMoney(g.remaining)} left`
+          : `Over by ${formatMoney(Math.abs(g.remaining))}`;
+    }
+
+    return (
+      <div className="bud-group-card" key={g.group}>
+        <div className="bud-group-head">
+          <span className="bud-group-name">{GROUP_LABELS[g.group]}</span>
+          <span className="bud-group-share">
+            {g.percent}% · {formatMoney(g.allowance)}
+          </span>
+        </div>
+
+        <div className="bud-bar">
+          <div
+            className={`bud-fill ${level}`}
+            style={{ width: `${Math.min(pct, 100)}%` }}
+          />
+        </div>
+
+        <div className="bud-group-numbers">
+          {isTarget
+            ? `${formatMoney(g.spent)} saved of ${formatMoney(g.allowance)}`
+            : `${formatMoney(g.spent)} of ${formatMoney(g.allowance)} used`}
+          {hasAllowance && <strong> · {pct}%</strong>}
+        </div>
+
+        <div className={`bud-status ${level}`}>{status}</div>
+
+        {g.categories.length > 0 ? (
+          <ul className="bud-group-subs">
+            {g.categories.map((c) => (
+              <li key={c._id}>
+                <span>{c.name}</span>
+                <span>{formatMoney(c.spent)}</span>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="bud-group-none">Nothing recorded yet</p>
+        )}
+      </div>
+    );
+  };
+
   if (loading) return <p>Loading...</p>;
 
   return (
@@ -239,6 +334,20 @@ export default function Budgets() {
           onChange={(e) => setMonth(e.target.value)}
         />
       </div>
+
+      {groups && (
+        <div className="bud-plan-section">
+          <h2 className="bud-plan-title">Your monthly plan</h2>
+          <p className="bud-sub">
+            {groups.incomeSource === 'none'
+              ? 'No income recorded yet. Add your income on the Transactions page, and your allowances will appear here.'
+              : groups.incomeSource === 'this month'
+              ? `Based on the income you recorded this month: ${formatMoney(groups.income)}.`
+              : `No income recorded this month yet, so this uses your recent monthly average: ${formatMoney(groups.income)}.`}
+          </p>
+          <div className="bud-groups">{groups.groups.map(renderGroupCard)}</div>
+        </div>
+      )}
 
       <form className="bud-form" onSubmit={handleSubmit}>
         <div className="bud-field">

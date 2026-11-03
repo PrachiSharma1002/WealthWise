@@ -4,6 +4,7 @@ const Category = require('../models/Category');
 const Transaction = require('../models/Transaction');
 const User = require('../models/User');
 const { copyLastMonth, suggestLimit } = require('../utils/autoBudget');
+const { GROUP_BY_NAME } = require('./categoryController');
 
 const MONTH_REGEX = /^\d{4}-(0[1-9]|1[0-2])$/;
 
@@ -111,10 +112,10 @@ const setBudget = async (req, res) => {
     if (!categoryDoc) {
       return res.status(404).json({ message: 'Category not found' });
     }
-    if (categoryDoc.type !== 'expense') {
-      return res
-        .status(400)
-        .json({ message: 'Budgets can only be set for expense categories' });
+    if (categoryDoc.group === 'savings') {
+      return res.status(400).json({
+        message: 'Savings categories have a target, not a spending limit',
+      });
     }
 
     const budget = await Budget.findOneAndUpdate(
@@ -232,6 +233,7 @@ const getRecommendations = async (req, res) => {
     const categories = await Category.find({
       user: req.user._id,
       type: 'expense',
+      group: { $ne: 'savings' },
     });
 
     const recommendations = [];
@@ -367,8 +369,10 @@ const getUnbudgeted = async (req, res) => {
     const categories = await Category.find({
       user: req.user._id,
       type: 'expense',
+      group: { $ne: 'savings' },
       _id: { $in: missing.map((r) => r._id) },
-    });
+    }); 
+
     const nameById = new Map(categories.map((c) => [String(c._id), c.name]));
 
     const result = [];
@@ -391,6 +395,106 @@ const getUnbudgeted = async (req, res) => {
   }
 };
 
+const GROUP_KEYS = ['needs', 'lifestyle', 'savings'];
+
+// GET: how much of each main group (needs, lifestyle, savings) is used this month
+const getGroupSummary = async (req, res) => {
+  try {
+    const { month } = req.query;
+    if (typeof month !== 'string' || !MONTH_REGEX.test(month)) {
+      return res.status(400).json({ message: 'Month must look like 2026-10' });
+    }
+    const { start, end } = monthRange(month);
+    const split = getSplit(req.user);
+
+    // This month's income, and this month's spending per category
+    const rows = await Transaction.aggregate([
+      { $match: { user: req.user._id, date: { $gte: start, $lt: end } } },
+      {
+        $group: {
+          _id: { type: '$type', category: '$category' },
+          total: { $sum: '$amount' },
+        },
+      },
+    ]);
+
+    let income = 0;
+    const spentByCategory = new Map();
+    rows.forEach((r) => {
+      if (r._id.type === 'income') {
+        income += r.total;
+      } else {
+        spentByCategory.set(String(r._id.category), r.total);
+      }
+    });
+    let incomeSource = income > 0 ? 'this month' : 'none';
+
+    // No income recorded this month, so use the average of the 3 months before
+    if (income === 0) {
+      const [year, mon] = month.split('-').map(Number);
+      const pastStart = new Date(Date.UTC(year, mon - 4, 1));
+      const pastEnd = new Date(Date.UTC(year, mon - 1, 1));
+      const pastIncome = await Transaction.aggregate([
+        {
+          $match: {
+            user: req.user._id,
+            type: 'income',
+            date: { $gte: pastStart, $lt: pastEnd },
+          },
+        },
+        {
+          $group: {
+            _id: { $dateToString: { format: '%Y-%m', date: '$date' } },
+            total: { $sum: '$amount' },
+          },
+        },
+      ]);
+      if (pastIncome.length > 0) {
+        const sum = pastIncome.reduce((s, r) => s + r.total, 0);
+        income = sum / pastIncome.length;
+        incomeSource = 'average of recent months';
+      }
+    }
+    income = round2(income);
+
+    // Sort this month's spending into the three groups
+    const categories = await Category.find({
+      user: req.user._id,
+      type: 'expense',
+    });
+    const byGroup = { needs: [], lifestyle: [], savings: [] };
+    categories.forEach((c) => {
+      const spent = spentByCategory.get(String(c._id));
+      if (!spent) return;
+      const group =
+        c.group || GROUP_BY_NAME.get(c.name.toLowerCase()) || 'lifestyle';
+      byGroup[group].push({ _id: c._id, name: c.name, spent: round2(spent) });
+    });
+
+    const groups = GROUP_KEYS.map((key) => {
+      const subs = byGroup[key].sort((a, b) => b.spent - a.spent);
+      const spent = round2(subs.reduce((sum, c) => sum + c.spent, 0));
+      const percent = split[key];
+      const allowance = round2((income * percent) / 100);
+      return {
+        group: key,
+        kind: key === 'savings' ? 'target' : 'limit',
+        percent,
+        allowance,
+        spent,
+        remaining: round2(allowance - spent),
+        percentUsed:
+          allowance > 0 ? Math.round((spent / allowance) * 100) : null,
+        categories: subs,
+      };
+    });
+
+    res.json({ month, income, incomeSource, split, groups });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
 module.exports = {
   getBudgets,
   setBudget,
@@ -398,4 +502,5 @@ module.exports = {
   getRecommendations,
   updateSplit,
   getUnbudgeted,
+  getGroupSummary,
 };
