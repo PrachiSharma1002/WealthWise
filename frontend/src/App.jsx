@@ -6,6 +6,7 @@ import Categories from './pages/Categories';
 import Transactions from './pages/Transactions';
 import Budgets from './pages/Budgets';
 import Goals from './pages/Goals';
+import Insights from './pages/Insights';
 import ProtectedRoute from './components/ProtectedRoute';
 import Layout from './components/Layout';
 
@@ -27,6 +28,7 @@ export default function App() {
         <Route path="/transactions" element={<Transactions />} />
         <Route path="/budgets" element={<Budgets />} />
         <Route path="/goals" element={<Goals />} />
+        <Route path="/insights" element={<Insights />} />
         <Route path="/categories" element={<Categories />} />
       </Route>
 

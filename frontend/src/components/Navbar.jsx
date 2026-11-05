@@ -21,6 +21,9 @@ export default function Navbar() {
         <NavLink to="/goals" className="navbar-link">
           Goals
         </NavLink>
+        <NavLink to="/insights" className="navbar-link">
+          Insights
+        </NavLink>
         <NavLink to="/categories" className="navbar-link">
           Categories
         </NavLink>

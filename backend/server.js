@@ -35,6 +35,10 @@ const goalRoutes = require('./routes/goalRoutes');
 app.use('/api/goals', goalRoutes);
 
 
+// Insight routes
+const insightRoutes = require('./routes/insightRoutes');
+app.use('/api/insights', insightRoutes);
+
 // 4. A test route to check the server is alive
 app.get('/', (req, res) => {
   res.send('WealthWise backend is running!');
