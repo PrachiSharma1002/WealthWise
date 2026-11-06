@@ -11,6 +11,7 @@ const {
 } = require('../utils/analysis');
 const { predictNextMonth, findRecurring } = require('../utils/prediction');
 const { healthScore } = require('../utils/healthScore');
+const { monthlyTrend } = require('../utils/trends');
 
 const MONTH_REGEX = /^\d{4}-(0[1-9]|1[0-2])$/;
 
@@ -55,12 +56,12 @@ const loadCategoryInfo = async (userId) => {
 };
 
 // One line per month, type and category, for the chosen month and the 3 before it
-const loadRows = async (userId, month, categoryInfo) => {
+const loadRows = async (userId, month, categoryInfo, monthsBack = 3) => {
   const grouped = await Transaction.aggregate([
     {
       $match: {
         user: userId,
-        date: { $gte: monthStart(month, 3), $lt: monthStart(month, -1) },
+        date: { $gte: monthStart(month, monthsBack), $lt: monthStart(month, -1) },
       },
     },
     {
@@ -211,4 +212,37 @@ const getHealth = async (req, res) => {
   }
 };
 
-module.exports = { getAnalysis, getPrediction, getRecurring, getHealth };
+// GET: month-by-month income, spending and savings, ending on the chosen month
+const getTrends = async (req, res) => {
+  try {
+    const month = readMonth(req, res);
+    if (!month) return;
+
+    // How many months to show (6 unless asked otherwise)
+    const count = req.query.months === undefined ? 6 : Number(req.query.months);
+    if (!Number.isInteger(count) || count < 2 || count > 12) {
+      return res
+        .status(400)
+        .json({ message: 'Months must be a whole number from 2 to 12' });
+    }
+
+    const categoryInfo = await loadCategoryInfo(req.user._id);
+    const rows = await loadRows(req.user._id, month, categoryInfo, count - 1);
+
+    res.json({
+      month,
+      monthComplete: month < thisMonth(),
+      ...monthlyTrend(rows, month, count),
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
+module.exports = {
+  getAnalysis,
+  getPrediction,
+  getRecurring,
+  getHealth,
+  getTrends,
+};
