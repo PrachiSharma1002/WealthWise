@@ -7,6 +7,7 @@ import Transactions from './pages/Transactions';
 import Budgets from './pages/Budgets';
 import Goals from './pages/Goals';
 import Insights from './pages/Insights';
+import Notifications from './pages/Notifications';
 import ProtectedRoute from './components/ProtectedRoute';
 import Layout from './components/Layout';
 
@@ -29,6 +30,7 @@ export default function App() {
         <Route path="/budgets" element={<Budgets />} />
         <Route path="/goals" element={<Goals />} />
         <Route path="/insights" element={<Insights />} />
+        <Route path="/notifications" element={<Notifications />} />
         <Route path="/categories" element={<Categories />} />
       </Route>
 
