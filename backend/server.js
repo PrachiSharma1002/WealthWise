@@ -18,6 +18,20 @@ app.use(express.json());
 const authRoutes = require('./routes/authRoutes');
 app.use('/api/auth', authRoutes);
 
+// 4. A test route to check the server is alive
+app.get('/', (req, res) => {
+  res.send('WealthWise backend is running!');
+});
+
+
+// A route that hosting services can call to check the server is alive
+app.get('/api/health', (req, res) => {
+  const connected = mongoose.connection.readyState === 1;
+  res.status(connected ? 200 : 503).json({
+    status: connected ? 'ok' : 'database not connected',
+    uptimeSeconds: Math.round(process.uptime()),
+  });
+});
 
 // Category and transaction routes
 const categoryRoutes = require('./routes/categoryRoutes');
@@ -44,10 +58,22 @@ app.use('/api/insights', insightRoutes);
 const notificationRoutes = require('./routes/notificationRoutes');
 app.use('/api/notifications', notificationRoutes);
 
-// 4. A test route to check the server is alive
-app.get('/', (req, res) => {
-  res.send('WealthWise backend is running!');
+
+// A URL that does not exist
+app.use((req, res) => {
+  res.status(404).json({ message: 'Not found' });
 });
+
+// Anything that goes wrong without being caught, such as broken JSON
+app.use((err, req, res, next) => {
+  // The details stay in this terminal, and are not sent to the browser
+  console.error('Unhandled error:', err.message);
+  const status = err.status || err.statusCode || 500;
+  res.status(status >= 400 && status < 600 ? status : 500).json({
+    message: status === 400 ? 'Invalid request' : 'Something went wrong',
+  });
+});
+
 
 // 5. Connect to MongoDB using the secret from .env
 mongoose

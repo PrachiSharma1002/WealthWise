@@ -2,6 +2,11 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 
+
+// A simple email check: something@something.something, with no spaces
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+const MAX_NAME_LENGTH = 60;
+
 // Creates the "wristband" (token) that proves who the user is
 const generateToken = (userId) => {
   return jwt.sign({ id: userId }, process.env.JWT_SECRET, {
@@ -15,6 +20,23 @@ const registerUser = async (req, res) => {
 
     if (!name || !email || !password) {
       return res.status(400).json({ message: 'Please fill in all fields' });
+    }
+        if (
+      typeof name !== 'string' ||
+      typeof email !== 'string' ||
+      typeof password !== 'string'
+    ) {
+      return res.status(400).json({ message: 'Please fill in all fields' });
+    }
+    if (name.trim().length > MAX_NAME_LENGTH) {
+      return res.status(400).json({
+        message: `Name must be ${MAX_NAME_LENGTH} characters or fewer`,
+      });
+    }
+    if (!EMAIL_REGEX.test(email.trim())) {
+      return res
+        .status(400)
+        .json({ message: 'Please enter a valid email address' });
     }
     if (password.length < 6) {
       return res

@@ -193,3 +193,50 @@
 .tx-delete-btn {
   color: #dc2626;
 }
+
+.tx-group {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  vertical-align: middle;
+}
+
+.tx-group.needs {
+  background: #eff6ff;
+  color: #2563eb;
+}
+
+.tx-group.lifestyle {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.tx-group.savings {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.tx-group.income {
+  background: #f3f4f6;
+  color: #4b5563;
+}
+
+.tx-cat .tx-group {
+  margin-left: 0;
+  margin-right: 8px;
+}
+
+.tx-arrow {
+  margin-right: 8px;
+  color: #9ca3af;
+  font-weight: 400;
+}
+
+.tx-field select:disabled {
+  background: #f3f4f6;
+  color: #9ca3af;
+  cursor: not-allowed;
+}

@@ -19,7 +19,7 @@ export default function Register() {
     setSubmitting(true);
     try {
       await register(name, email, password);
-      navigate('/login'); // account created, so go to the login page
+      navigate('/login', { state: { registered: true } }); // account created, so go to the login page
     } catch (err) {
       setError(
         err.response?.data?.message || 'Something went wrong. Please try again.'

@@ -57,7 +57,7 @@ const getTransactions = async (req, res) => {
     }
 
     const transactions = await Transaction.find(filter)
-      .populate('category', 'name type')
+      .populate('category', 'name type group')
       .sort({ date: -1, createdAt: -1 });
 
     res.json(transactions);
@@ -104,7 +104,7 @@ const createTransaction = async (req, res) => {
     });
 
     await ensureBudget(req.user._id, transaction);
-    await transaction.populate('category', 'name type');
+    await transaction.populate('category', 'name type group');
     res.status(201).json(transaction);
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
@@ -171,7 +171,7 @@ const updateTransaction = async (req, res) => {
 
     await transaction.save();
     await ensureBudget(req.user._id, transaction);
-    await transaction.populate('category', 'name type');
+    await transaction.populate('category', 'name type group');
     res.json(transaction);
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });

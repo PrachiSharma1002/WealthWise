@@ -71,3 +71,12 @@
   text-align: center;
   font-size: 14px;
 }
+
+.auth-success {
+  background: #dcfce7;
+  color: #15803d;
+  padding: 10px;
+  border-radius: 8px;
+  margin-bottom: 12px;
+  font-size: 14px;
+}

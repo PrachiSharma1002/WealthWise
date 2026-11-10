@@ -22,6 +22,58 @@ const EMPTY_FILTERS = {
   search: '',
 };
 
+const GROUP_LABELS = {
+  needs: 'Needs',
+  lifestyle: 'Lifestyle',
+  savings: 'Savings',
+};
+
+// The special choice at the end of the sub-category list
+const NEW_OPTION = '__new__';
+
+// An example name shown while typing a new sub-category
+const EXAMPLES = {
+  needs: 'Groceries',
+  lifestyle: 'Gym',
+  savings: 'Gold',
+};
+
+// Category options for the filter bar, grouped: income first, then the three groups
+const renderCategoryOptions = (list) => {
+  const sections = [
+    { label: 'Income', items: list.filter((c) => c.type === 'income') },
+    ...Object.keys(GROUP_LABELS).map((key) => ({
+      label: GROUP_LABELS[key],
+      items: list.filter(
+        (c) => c.type === 'expense' && (c.group || 'lifestyle') === key
+      ),
+    })),
+  ];
+
+  return sections
+    .filter((s) => s.items.length > 0)
+    .map((s) => (
+      <optgroup key={s.label} label={s.label}>
+        {[...s.items]
+          .sort((a, b) => a.name.localeCompare(b.name))
+          .map((c) => (
+            <option key={c._id} value={c._id}>
+              {c.name}
+            </option>
+          ))}
+      </optgroup>
+    ));
+};
+
+// The first level of a transaction: its group, or "income" for income
+const groupKeyOf = (t) =>
+  t.type === 'income' ? 'income' : t.category?.group || 'lifestyle';
+
+const groupLabelOf = (t) =>
+  t.type === 'income'
+    ? 'Income'
+    : GROUP_LABELS[t.category?.group || 'lifestyle'];
+
 export default function Transactions() {
   const [categories, setCategories] = useState([]);
   const [transactions, setTransactions] = useState([]);
@@ -29,7 +81,9 @@ export default function Transactions() {
   // The add/edit form fields
   const [type, setType] = useState('expense');
   const [amount, setAmount] = useState('');
-  const [categoryId, setCategoryId] = useState('');
+  const [group, setGroup] = useState(''); // needs, lifestyle or savings (expenses only)
+  const [categoryId, setCategoryId] = useState(''); // the sub-category (or the income category)
+  const [newName, setNewName] = useState(''); // the name of a brand-new sub-category
   const [date, setDate] = useState(today());
   const [note, setNote] = useState('');
   const [editingId, setEditingId] = useState(null); // null means "adding new"
@@ -42,6 +96,9 @@ export default function Transactions() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+
+  // Is the user adding a brand-new sub-category right now?
+  const creatingNew = type === 'expense' && categoryId === NEW_OPTION;
 
   // Fetch my categories once, when the page opens
   useEffect(() => {
@@ -90,9 +147,14 @@ export default function Transactions() {
     };
   }, [filters, reloadKey]);
 
-  // Categories for the form: only the ones matching the chosen type
-  const typeCategories = categories
-    .filter((c) => c.type === type)
+  // The sub-categories of the chosen group, like Food, Rent and Bills for Needs
+  const subCategories = categories
+    .filter((c) => c.type === 'expense' && (c.group || 'lifestyle') === group)
+    .sort((a, b) => a.name.localeCompare(b.name));
+
+  // The categories for income, like Salary and Freelance
+  const incomeCategories = categories
+    .filter((c) => c.type === 'income')
     .sort((a, b) => a.name.localeCompare(b.name));
 
   // Categories for the filter bar: matching the filter's type, if one is chosen
@@ -103,6 +165,13 @@ export default function Transactions() {
   const handleTypeChange = (e) => {
     setType(e.target.value);
     setCategoryId(''); // the old category may not fit the new type
+    setNewName('');
+  };
+
+  const handleGroupChange = (e) => {
+    setGroup(e.target.value);
+    setCategoryId(''); // the old sub-category belongs to the old group
+    setNewName('');
   };
 
   const updateFilter = (field, value) => {
@@ -125,6 +194,7 @@ export default function Transactions() {
     setAmount('');
     setNote('');
     setCategoryId('');
+    setNewName('');
     setDate(today());
   };
 
@@ -133,8 +203,10 @@ export default function Transactions() {
     setError('');
     setEditingId(t._id);
     setType(t.type);
+    if (t.type === 'expense') setGroup(t.category?.group || 'lifestyle');
     setAmount(String(t.amount));
     setCategoryId(t.category?._id || '');
+    setNewName('');
     setDate(new Date(t.date).toISOString().slice(0, 10));
     setNote(t.note || '');
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -143,9 +215,47 @@ export default function Transactions() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+
+    // Adding a brand-new sub-category: check the name before doing anything
+    let name = '';
+    if (creatingNew) {
+      name = newName.trim();
+      if (!name) {
+        setError('Type a name for the new sub-category');
+        return;
+      }
+      const existing = categories.find(
+        (c) => c.type === 'expense' && c.name.toLowerCase() === name.toLowerCase()
+      );
+      if (existing) {
+        setError(
+          `You already have "${existing.name}" under ${
+            GROUP_LABELS[existing.group || 'lifestyle']
+          }. Pick it from that category's list instead.`
+        );
+        return;
+      }
+    }
+
     setSubmitting(true);
     try {
-      const payload = { type, amount, category: categoryId, date, note };
+      // Create the new sub-category first, then use it for this transaction
+      let chosenId = categoryId;
+      if (creatingNew) {
+        const created = await api.post('/categories', {
+          name,
+          type: 'expense',
+          group,
+        });
+        setCategories((prev) => [...prev, created.data]);
+        chosenId = created.data._id;
+        // If saving the transaction fails below, the new sub-category stays
+        // selected, so it is not created a second time
+        setCategoryId(chosenId);
+        setNewName('');
+      }
+
+      const payload = { type, amount, category: chosenId, date, note };
       if (editingId) {
         await api.put(`/transactions/${editingId}`, payload);
         resetForm();
@@ -154,6 +264,7 @@ export default function Transactions() {
         setAmount('');
         setNote('');
         setCategoryId('');
+        setDate(today());
       }
       setReloadKey((k) => k + 1); // fetch the list again
     } catch (err) {
@@ -224,21 +335,74 @@ export default function Transactions() {
           />
         </div>
 
-        <div className="tx-field">
-          <label>Category</label>
-          <select
-            value={categoryId}
-            onChange={(e) => setCategoryId(e.target.value)}
-            required
-          >
-            <option value="">Choose...</option>
-            {typeCategories.map((c) => (
-              <option key={c._id} value={c._id}>
-                {c.name}
-              </option>
-            ))}
-          </select>
-        </div>
+        {type === 'expense' ? (
+          <>
+            <div className="tx-field">
+              <label>Category</label>
+              <select value={group} onChange={handleGroupChange} required>
+                <option value="">Choose...</option>
+                {Object.keys(GROUP_LABELS).map((key) => (
+                  <option key={key} value={key}>
+                    {GROUP_LABELS[key]}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="tx-field">
+              <label>Sub-category</label>
+              <select
+                value={categoryId}
+                onChange={(e) => setCategoryId(e.target.value)}
+                disabled={!group}
+                required
+              >
+                <option value="">
+                  {group ? 'Choose...' : 'Choose a category first'}
+                </option>
+                {subCategories.map((c) => (
+                  <option key={c._id} value={c._id}>
+                    {c.name}
+                  </option>
+                ))}
+                {group && (
+                  <option value={NEW_OPTION}>Other (add your own)...</option>
+                )}
+              </select>
+            </div>
+
+            {creatingNew && (
+              <div className="tx-field">
+                <label>New sub-category name</label>
+                <input
+                  type="text"
+                  value={newName}
+                  onChange={(e) => setNewName(e.target.value)}
+                  maxLength={40}
+                  placeholder={`e.g. ${EXAMPLES[group]}`}
+                  required
+                  autoFocus
+                />
+              </div>
+            )}
+          </>
+        ) : (
+          <div className="tx-field">
+            <label>Category</label>
+            <select
+              value={categoryId}
+              onChange={(e) => setCategoryId(e.target.value)}
+              required
+            >
+              <option value="">Choose...</option>
+              {incomeCategories.map((c) => (
+                <option key={c._id} value={c._id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
 
         <div className="tx-field">
           <label>Date</label>
@@ -290,11 +454,7 @@ export default function Transactions() {
             onChange={(e) => updateFilter('category', e.target.value)}
           >
             <option value="">All</option>
-            {filterCategories.map((c) => (
-              <option key={c._id} value={c._id}>
-                {c.name}
-              </option>
-            ))}
+            {renderCategoryOptions(filterCategories)}
           </select>
         </div>
 
@@ -349,7 +509,13 @@ export default function Transactions() {
           {transactions.map((t) => (
             <li key={t._id}>
               <div>
-                <div className="tx-cat">{t.category?.name}</div>
+                <div className="tx-cat">
+                  <span className={`tx-group ${groupKeyOf(t)}`}>
+                    {groupLabelOf(t)}
+                  </span>
+                  <span className="tx-arrow">›</span>
+                  {t.category?.name}
+                </div>
                 <div className="tx-meta">
                   {formatDate(t.date)}
                   {t.note ? ` · ${t.note}` : ''}

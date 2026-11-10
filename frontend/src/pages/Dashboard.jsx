@@ -8,6 +8,7 @@ import GroupChart from '../components/GroupChart';
 import GoalsPanel from '../components/GoalsPanel';
 import RecurringPanel from '../components/RecurringPanel';
 import RecentTransactions from '../components/RecentTransactions';
+import GettingStarted from '../components/GettingStarted';
 import './Dashboard.css';
 
 // The current month as YYYY-MM, in the user's own timezone
@@ -111,6 +112,7 @@ export default function Dashboard() {
         )}
       </div>
 
+        <GettingStarted />
       {analysis && !hasData && (
         <p className="dash-empty">
           Nothing recorded in {formatMonthName(month)} yet.{' '}

@@ -1,12 +1,12 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import './Auth.css';
 
 export default function Login() {
   const { login } = useAuth();
   const navigate = useNavigate();
-
+  const location = useLocation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -35,6 +35,11 @@ export default function Login() {
         <p className="sub">Log in to your WealthWise account</p>
 
         {error && <div className="auth-error">{error}</div>}
+        {location.state?.registered && !error && (
+          <div className="auth-success">
+            Account created! Log in to get started.
+          </div>
+        )}
 
         <label>Email</label>
         <input
